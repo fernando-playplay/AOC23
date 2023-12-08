@@ -66,15 +66,86 @@ final class GearRatios
 
     public function part2(): int
     {
-        $lineGenerator = $this->readLine(true);
+        $lineGenerator = $this->readLine();
         $sum = 0;
+        // too many special cases, rethink strategy 😅
+        $symbols = [];
+        $digits = [];
+        $numbers = [];
+        // locate everything
+        foreach ($lineGenerator as $rowIx => $row) {
+            foreach (str_split($row) as $charIx => $char) {
+                // skip points
+                if ($char === '.') {
+                    continue;
+                }
+
+                // locate symbols
+                if ($char === '*') {
+                    $symbols[$rowIx][$charIx] = $charIx;
+                    continue;
+                }
+
+                // make sure the first digit of number is added
+                if ($charIx && is_numeric($row[$charIx - 1])) {
+                    $digits[count($digits) - 1] .= $char;
+                } elseif (is_numeric($char)) {
+                    $digits[] = $char;
+                }
+
+                // map of the numbers positions row by row
+                $numbers[$rowIx][$charIx] = count($digits) - 1;
+            }
+        }
+
+        // calculate the sum
+        foreach ($symbols as $rowIx => $symbolsByRow) {
+            foreach ($symbolsByRow as $symbolPos) {
+                $toRatio = [];
+                // search row behind
+                if (isset($numbers[$rowIx - 1][$symbolPos - 1])) {
+                    $toRatio[] = $digits[$numbers[$rowIx - 1][$symbolPos - 1]];
+                }
+                if (isset($numbers[$rowIx - 1][$symbolPos])) {
+                    $toRatio[] = $digits[$numbers[$rowIx - 1][$symbolPos]];
+                }
+                if (isset($numbers[$rowIx - 1][$symbolPos + 1])) {
+                    $toRatio[] = $digits[$numbers[$rowIx - 1][$symbolPos + 1]];
+                }
+
+                // search same row, left & right
+                if (isset($numbers[$rowIx][$symbolPos - 1])) {
+                    $toRatio[] = $digits[$numbers[$rowIx][$symbolPos - 1]];
+                }
+                if (isset($numbers[$rowIx][$symbolPos + 1])) {
+                    $toRatio[] = $digits[$numbers[$rowIx][$symbolPos + 1]];
+                }
+
+                // search row ahead
+                if (isset($numbers[$rowIx + 1][$symbolPos - 1])) {
+                    $toRatio[] = $digits[$numbers[$rowIx + 1][$symbolPos - 1]];
+                }
+                if (isset($numbers[$rowIx + 1][$symbolPos])) {
+                    $toRatio[] = $digits[$numbers[$rowIx + 1][$symbolPos]];
+                }
+                if (isset($numbers[$rowIx + 1][$symbolPos + 1])) {
+                    $toRatio[] = $digits[$numbers[$rowIx + 1][$symbolPos + 1]];
+                }
+
+                // remove duplicates
+                $toRatio = array_unique($toRatio);
+                if (count($toRatio) === 2) {
+                    $sum += (int) array_product($toRatio);
+                }
+            }
+        }
 
         return $sum;
     }
 
-    private function readLine(bool $useControl = false): \Generator
+    private function readLine(): \Generator
     {
-        $fp = fopen(__DIR__ . '/../Data/'. ($useControl ? 'day3control.txt' : 'day3.txt'), 'rb');
+        $fp = fopen(__DIR__ . '/../Data/day3.txt', 'rb');
 
         while (($line = fgets($fp)) !== false) {
             yield trim($line, "\r\n");

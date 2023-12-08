@@ -18,6 +18,6 @@ final class Day3Test extends TestCase
 
     public function testItPassesPart2(): void
     {
-        $this->assertSame(467835, (new GearRatios())->part2());
+        $this->assertSame(74528807, (new GearRatios())->part2());
     }
 }
