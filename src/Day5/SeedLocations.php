@@ -53,18 +53,123 @@ final class SeedLocations
 {
     public function part1(): int
     {
-        $lineGenerator = $this->readLine(true);
-        $lines = iterator_to_array($lineGenerator);
-        $seeds = array_map(static fn (string $seed): int => (int) $seed, explode(' ', substr($lines[0], 7)));
+        $lineGenerator = $this->readLine();
+        $seeds = array_map(static fn (string $seed): int => (int) $seed, explode(' ', substr($lineGenerator->current(), 7)));
 
-        // ??????????? = https://knowyourmeme.com/memes/math-lady-confused-lady
+        $mapN = -1;
+        $maps = [];
+        // first create the maps and their ranges
+        foreach ($lineGenerator as $line) {
+            if (str_starts_with($line, 'seeds:')) {
+                continue;
+            }
+            if (str_ends_with($line, 'map:')) {
+                $mapN++;
+                continue;
+            }
+            if ($line === '') {
+                continue;
+            }
 
-        return 0;
+            [$dest, $source, $length] = explode(' ', $line);
+            $maps[$mapN][] = [
+                'dest' => (int) $dest,
+                'source' => (int) $source,
+                'length' => (int) $length,
+            ];
+        }
+
+        foreach ($seeds as $i => $seed) {
+            $location = $seed;
+            foreach ($maps as $map) {
+                foreach ($map as $mapLine) {
+                    if ($location >= $mapLine['source'] && $location <= $mapLine['source'] + $mapLine['length'] - 1) {
+                        $location = $mapLine['dest'] + ($location - $mapLine['source']);
+                        $seeds[$i] = $location;
+                        continue 2;
+                    }
+                }
+            }
+        }
+
+        return min($seeds);
     }
 
     public function part2(): int
     {
-        return 0;
+        $lineGenerator = $this->readLine(true);
+        $rawSeeds = array_map(static fn (string $seed): int => (int) $seed, explode(' ', substr($lineGenerator->current(), 7)));
+        $seedRanges = [];
+        // first create the seed ranges
+        for ($i = 0, $iMax = count($rawSeeds); $i < $iMax; $i += 2) {
+            $seedRanges[] = ['source' => $rawSeeds[$i], 'dest' => $rawSeeds[$i] + ($rawSeeds[$i + 1] - 1)];
+        }
+
+        $mapN = -1;
+        $maps = [];
+        // then create the maps and their ranges
+        foreach ($lineGenerator as $line) {
+            if (str_starts_with($line, 'seeds:')) {
+                continue;
+            }
+            if (str_ends_with($line, 'map:')) {
+                $mapN++;
+                continue;
+            }
+            if ($line === '') {
+                continue;
+            }
+
+            [$dest, $source, $length] = explode(' ', $line);
+            $maps[$mapN][] = [
+                'dest' => (int) $dest,
+                'source' => (int) $source,
+                'length' => (int) $length,
+            ];
+        }
+
+        // then for the fun part:
+        // we need to check if the ranges overlap and if so, take the values for that range
+        // something like this:
+        //
+        // no overlapping range, use full src range
+        // x1-----x2                           x1-----x2
+        //             y1----y2  or  y1----y2
+        //
+        // overlapping range starts after srcStart, truncate src range to [x1,y1]
+        // x1-------------x2
+        //        y1------------y2
+        //
+        // overlapping range starts before srcStart, truncate src range to [x1,y2].
+        //        x1-------------x2
+        // y1------------y2
+        //
+        // overlapping range contains src range, return full src range
+        //      x1--x2
+        // y1-------------y2
+
+        foreach ($seedRanges as $i => $seed) {
+            $location = $seed;
+            foreach ($maps as $map) {
+                foreach ($map as $mapLine) {
+                    // overlaps ranges or matches perfectly
+                    // seed.dest >= dest && dest+length-1 >= seed.source
+                    if ($location['dest'] >= $mapLine['dest'] && ($mapLine['dest'] + $mapLine['length'] - 1) >= $location['source']) {
+                        // check if the seed range overlaps with any map range
+                        // then we need to get all the seed range parts that overlap
+
+                        // case 1: fits perfectly in range, compute all seeds
+                        if ($location['dest'] > $mapLine['dest'] && ($mapLine['dest'] + $mapLine['length'] - 1) > $location['source']) {
+                            // TODO
+                        }
+                        var_dump('ee', $seed, $mapLine);die;
+                        continue 2;
+                    }
+                }
+            }
+        }
+
+        return min($seeds);
     }
 
     private function readLine(bool $control = false): \Generator
